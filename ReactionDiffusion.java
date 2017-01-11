@@ -20,6 +20,39 @@ import javafx.event.ActionEvent;
 public class ReactionDiffusion extends Application {
 
   private static float[][] grid;
+  private static float[][] laplace = {{0.05f, 0.2f, 0.05f}, {0.2f, -1.0f, 0.2f},
+    {0.05f, 0.2f, 0.05f}};
+
+  private static int resX = 240, resY = 135;
+
+  private static float feedRate = 0.0367f;
+  private static float killRate = 0.0649f;
+  private static float diffusionRateA = 1.0f;
+  private static float diffusionRateB = 1.0f;
+
+  public static class Laplace {
+
+    public float A;
+    public float B;
+
+    public Laplace(float A, float B){
+      this.A = A;
+      this.B = B;
+    }
+
+  }
+
+  public static class Results {
+
+    public float A;
+    public float B;
+
+    public Results(float A, float B){
+      this.A = A;
+      this.B = B;
+    }
+
+  }
 
   public void start(Stage stage){
 
@@ -34,7 +67,8 @@ public class ReactionDiffusion extends Application {
     btnStep.setOnAction(new EventHandler<ActionEvent>(){
       @Override
       public void handle(ActionEvent e){
-        imgView.setImage(SwingFXUtils.toFXImage(createImage(), null));
+        //step();
+        imgView.setImage(step());
       }
     });
     imgView.fitWidthProperty().bind(viewport.widthProperty());
@@ -57,34 +91,6 @@ public class ReactionDiffusion extends Application {
 
   }
 
-  // public static BufferedImage createImageTest(){
-  //
-  //   int imgWidth = 1920;
-  //   int imgHeight = 1080;
-  //
-  //   BufferedImage img = new BufferedImage(1920, 1080, BufferedImage.TYPE_INT_ARGB);
-  //   int rgb = 0xFFFFFF;
-  //   ByteBuffer buf = ByteBuffer.allocate(4);
-  //   buf.putInt(rgb);
-  //   System.out.println(rgb);
-  //   int a = 255;
-  //   int r = (int) buf.get(1);
-  //   int g = (int) buf.get(2);
-  //   int b = (int) buf.get(3);
-  //   System.out.println("r: " + r + "\ng: " + g + "\nb: " + b);
-  //   // bit pattern: |8xalpha|8xred|8xgreen|8xblue|
-  //   int color = (a << 24) | (r << 16) | (g << 8) | b;
-  //   Random rnd = new Random();
-  //   for(int y = 0; y < imgHeight; y++){
-  //     for(int x = 0; x < imgWidth; x++){
-  //       img.setRGB(x, y, color);
-  //     }
-  //   }
-  //
-  //   return img;
-  //
-  // }
-
   public static int getColor(int current){
 
     int r = (current & 0xFF0000) >> 16;
@@ -100,10 +106,7 @@ public class ReactionDiffusion extends Application {
 
   public BufferedImage createImage(){
 
-    int imgWidth = 1920;
-    int imgHeight = 1080;
-
-    BufferedImage img = new BufferedImage(1920, 1080, BufferedImage.TYPE_INT_ARGB);
+    BufferedImage img = new BufferedImage(resX, resY, BufferedImage.TYPE_INT_ARGB);
     int r = 232, g = 12, b = 12, a = 255;
     // bit pattern: |8xalpha|8xred|8xgreen|8xblue|
     int color = (a << 24) | (r << 16) | (g << 8) | b;
@@ -118,8 +121,8 @@ public class ReactionDiffusion extends Application {
     int colorB = (a << 24) | (r << 16) | (g << 8) | b;
 
     Random rnd = new Random();
-    for(int y = 0; y < imgHeight; y++){
-      for(int x = 0; x < imgWidth; x++){
+    for(int y = 0; y < resY; y++){
+      for(int x = 0; x < resX; x++){
         if(rnd.nextFloat() < .5){
           img.setRGB(x, y, colorA);
         }
@@ -141,24 +144,26 @@ public class ReactionDiffusion extends Application {
 
   }
 
+  public static void updateImage(BufferedImage image, float B, int x, int y){
+
+    int a = 255;
+    int r = (int) (((float) 255) * B);
+    int g = (int) (((float) 255) * B);
+    int b = (int) (((float) 255) * B);
+
+    int color = (a << 24) | (r << 16) | (g << 8) | b;
+    image.setRGB(x, y, color);
+
+  }
+
   public Image step(){
 
-    int imgWidth = 1920;
-    int imgHeight = 1080;
+    BufferedImage img = new BufferedImage(resX, resY, BufferedImage.TYPE_INT_ARGB);
 
-    BufferedImage img = new BufferedImage(1920, 1080, BufferedImage.TYPE_INT_ARGB);
-
-    // Set colorA to white
-    int r = 255, g = 255, b = 255, a = 255;
-    int colorA = (a << 24) | (r << 16) | (g << 8) | b;
-
-    // Set colorB to black
-    r = 0; g = 0; b = 0; a = 255;
-    int colorB = (a << 24) | (r << 16) | (g << 8) | b;
-
-    for(int y = 0; y < imgHeight; y++){
-      for(int x = 0; x < imgWidth; x++){
-
+    for(int y = 0; y < resY; y++){
+      for(int x = 0; x < resX; x++){
+        Results results = calculate(y, x);
+        updateImage(img, results.B, x, y);
       }
     }
 
@@ -166,10 +171,75 @@ public class ReactionDiffusion extends Application {
 
   }
 
+  public static Results calculate(int y, int x){
+
+    float B = grid[y][x];
+    float A = 1 - B;
+
+    Laplace laplace = getLaplace(x, y);
+
+    float newA = (diffusionRateA * laplace.A) - (A * B * B) + (feedRate * (1 - A));
+
+    float newB = (diffusionRateB * laplace.B) + (A * B * B) - (B * (killRate + feedRate));
+
+    System.out.println("A: " + newA + ", B: " + newB);
+    grid[y][x] = newB;
+
+    return new Results(A, B);
+
+  }
+
+  public static Laplace getLaplace(int x, int y){
+
+    float lapA = 0.0f, lapB = 0.0f;
+
+    for(int i = 0; i < 3; i++){
+      int row = y + (i - 1);
+      if(row < 0)
+        row = resY - 1;
+      else if(row >= resY)
+        row = 0;
+      for(int j = 0; j < 3; j++){
+        int column = x + (j - 1);
+        if(column < 0)
+          column = resX - 1;
+        else if(column >= resX)
+          column = 0;
+        float B = grid[y][x];
+        float A = 1 - B;
+        lapA += A * laplace[i][j];
+        lapB += B * laplace[i][j];
+        //System.out.print(grid[row][column] + " ");
+      }
+      //System.out.println();
+    }
+
+    return new Laplace(lapA, lapB);
+
+  }
+
+  public static void initializeGrid(){
+
+    grid = new float[resY][resX];
+    for(int i = 0; i < resY; i++){
+      for(int j = 0; j < resX; j++){
+        if((i > ((resY / 2) - 4) && i < ((resY / 2) + 4))
+          && (j > ((resX / 2) - 4) && j < ((resX / 2) + 4)))
+          grid[i][j] = 1;
+        else
+          grid[i][j] = 0;
+
+      }
+    }
+
+  }
+
   public static void main(String[] args){
 
-    getColor(0x11F12A);
-    grid = new float[1920][1080];
+    //getColor(0x11F12A);
+    initializeGrid();
+    //Laplace lp = getLaplace(0, 0);
+    //System.out.println("Laplace A: " + lp.A + "\nLaplace B: " + lp.B);
     Application.launch(args);
 
   }
