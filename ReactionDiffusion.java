@@ -19,7 +19,9 @@ import javafx.event.EventHandler;
 import javafx.event.ActionEvent;
 public class ReactionDiffusion extends Application {
 
-  private static float[][] grid;
+  public static ImageView imgView = new ImageView();
+
+  private static float[][] matrixA, matrixB;
   private static float[][] laplace = {{0.05f, 0.2f, 0.05f}, {0.2f, -1.0f, 0.2f},
     {0.05f, 0.2f, 0.05f}};
 
@@ -28,7 +30,9 @@ public class ReactionDiffusion extends Application {
   private static float feedRate = 0.0367f;
   private static float killRate = 0.0649f;
   private static float diffusionRateA = 1.0f;
-  private static float diffusionRateB = 1.0f;
+  private static float diffusionRateB = 0.5f;
+
+  private static boolean playing = false;
 
   public static class Laplace {
 
@@ -54,6 +58,44 @@ public class ReactionDiffusion extends Application {
 
   }
 
+  public static class Player implements Runnable {
+
+    private Thread thread;
+    private String name;
+    private ImageView imgView;
+
+    public Player(String name, ImageView imgView){
+      this.name = name;
+      this.imgView = imgView;
+    }
+
+    public void run(){
+      while(true){
+        //System.out.println("Playing: " + playing);
+        if(playing){
+          imgView.setImage(step());
+        }
+        else{
+          try {
+            Thread.sleep(50);
+          }catch(InterruptedException e){
+            System.out.println("Thread was interrupted.");
+          }
+        }
+      }
+    }
+
+    public void start(){
+
+      if(thread == null){
+        thread = new Thread(this, name);
+        thread.start();
+      }
+
+    }
+
+  }
+
   public void start(Stage stage){
 
     //StackPane pane = new StackPane();
@@ -62,8 +104,11 @@ public class ReactionDiffusion extends Application {
     VBox controls = new VBox();
     // Image img = new Image("star_wars.jpg");
     // ImageView imgView = new ImageView(img);
-    ImageView imgView = new ImageView();
+
     Button btnStep = new Button("Step");
+    Button btnPlay = new Button("Play");
+    Button btnStop = new Button("Stop");
+
     btnStep.setOnAction(new EventHandler<ActionEvent>(){
       @Override
       public void handle(ActionEvent e){
@@ -71,6 +116,23 @@ public class ReactionDiffusion extends Application {
         imgView.setImage(step());
       }
     });
+
+    btnPlay.setOnAction(new EventHandler<ActionEvent>(){
+      @Override
+      public void handle(ActionEvent e){
+        playing = true;
+        System.out.println("Playing");
+      }
+    });
+
+    btnStop.setOnAction(new EventHandler<ActionEvent>(){
+      @Override
+      public void handle(ActionEvent e){
+        playing = false;
+        System.out.println("Stopped");
+      }
+    });
+
     imgView.fitWidthProperty().bind(viewport.widthProperty());
     imgView.fitHeightProperty().bind(viewport.heightProperty());
     Scene scene = new Scene(container, 1200, 540);
@@ -83,7 +145,7 @@ public class ReactionDiffusion extends Application {
 
     viewport.getChildren().add(imgView);
     container.getChildren().addAll(viewport, controls);
-    controls.getChildren().addAll(btnStep);
+    controls.getChildren().addAll(btnPlay, btnStop, btnStep);
 
     stage.setTitle("Reaction Diffusion");
     stage.setScene(scene);
@@ -144,54 +206,83 @@ public class ReactionDiffusion extends Application {
 
   }
 
-  public static void updateImage(BufferedImage image, float B, int x, int y){
+  public static void updateImage(BufferedImage image, float A, float B, int x, int y){
 
     int a = 255;
-    int r = (int) (((float) 255) * B);
-    int g = (int) (((float) 255) * B);
-    int b = (int) (((float) 255) * B);
+    //float col = 255 - (B * 255);
+
+    float col = 255 - (B * 255);
+    //col = (col / 255) * 30;
+
+    int r = (int) col;
+    //int r = (int) (((float) 255) * B);
+    int g = (int) col;
+    int b = (int) col;
 
     int color = (a << 24) | (r << 16) | (g << 8) | b;
     image.setRGB(x, y, color);
 
   }
 
-  public Image step(){
+  public static void updateImageBW(BufferedImage image, float B, int x, int y){
 
+    int color = 0;
+    if(B >= 1.0)
+      color = 0xFF000000;
+    else
+      color = 0xFFFFFFFF;
+    image.setRGB(x, y, color);
+
+  }
+
+  public static Image step(){
+
+    //System.out.print("Processing step...");
     BufferedImage img = new BufferedImage(resX, resY, BufferedImage.TYPE_INT_ARGB);
 
     for(int y = 0; y < resY; y++){
       for(int x = 0; x < resX; x++){
         Results results = calculate(y, x);
-        updateImage(img, results.B, x, y);
+        updateImage(img, results.A, results.B, x, y);
+        //updateImageBW(img, results.B, x, y);
       }
     }
 
+    //System.out.println("Done");
+    // float A = matrixA[0][0];
+    // float B = matrixB[0][0];
+    // System.out.println("\tA: " + (1 - B) + " B: " + B);
     return SwingFXUtils.toFXImage(img, null);
 
   }
 
   public static Results calculate(int y, int x){
 
-    float B = grid[y][x];
-    float A = 1 - B;
+    float A = matrixA[y][x];
+    float B = matrixB[y][x];
 
     Laplace laplace = getLaplace(x, y);
 
-    float newA = (diffusionRateA * laplace.A) - (A * B * B) + (feedRate * (1 - A));
+    float newA = A + ((diffusionRateA * laplace.A) - (A * B * B) + (feedRate * (1 - A)));
+    if(newA < 0)
+      newA = 0;
 
-    float newB = (diffusionRateB * laplace.B) + (A * B * B) - (B * (killRate + feedRate));
+    float newB = B + ((diffusionRateB * laplace.B) + (A * B * B) - (B * (killRate + feedRate)));
+    if(newB < 0)
+      newB = 0;
 
-    System.out.println("A: " + newA + ", B: " + newB);
-    grid[y][x] = newB;
+    // if(B >= 1)
+    //   System.out.println("A: " + newA + ", B: " + newB);
+    matrixA[y][x] = newA;
+    matrixB[y][x] = newB;
 
-    return new Results(A, B);
+    return new Results(newA, newB);
 
   }
 
   public static Laplace getLaplace(int x, int y){
 
-    float lapA = 0.0f, lapB = 0.0f;
+    float lapA = 0, lapB = 0;
 
     for(int i = 0; i < 3; i++){
       int row = y + (i - 1);
@@ -205,29 +296,30 @@ public class ReactionDiffusion extends Application {
           column = resX - 1;
         else if(column >= resX)
           column = 0;
-        float B = grid[y][x];
-        float A = 1 - B;
+        float A = matrixA[row][column];
+        float B = matrixB[row][column];
         lapA += A * laplace[i][j];
         lapB += B * laplace[i][j];
-        //System.out.print(grid[row][column] + " ");
       }
-      //System.out.println();
     }
 
+    //System.out.println(lapA + " " + lapB);
     return new Laplace(lapA, lapB);
 
   }
 
-  public static void initializeGrid(){
+  public static void initializeMatrices(){
 
-    grid = new float[resY][resX];
+    matrixA = new float[resY][resX];
+    matrixB = new float[resY][resX];
     for(int i = 0; i < resY; i++){
       for(int j = 0; j < resX; j++){
+        matrixA[i][j] = 1;
         if((i > ((resY / 2) - 4) && i < ((resY / 2) + 4))
           && (j > ((resX / 2) - 4) && j < ((resX / 2) + 4)))
-          grid[i][j] = 1;
+          matrixB[i][j] = 1;
         else
-          grid[i][j] = 0;
+          matrixB[i][j] = 0;
 
       }
     }
@@ -236,10 +328,14 @@ public class ReactionDiffusion extends Application {
 
   public static void main(String[] args){
 
-    //getColor(0x11F12A);
-    initializeGrid();
-    //Laplace lp = getLaplace(0, 0);
-    //System.out.println("Laplace A: " + lp.A + "\nLaplace B: " + lp.B);
+    initializeMatrices();
+    Laplace laplace = getLaplace(117, 64);
+    //System.out.println("A: " + matrixA[64][117] + " B: " + matrixB[64][117]);
+    //System.out.println(laplace.A + " " + laplace.B);
+
+    Player player = new Player("player1", imgView);
+    player.start();
+
     Application.launch(args);
 
   }
