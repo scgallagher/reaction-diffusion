@@ -17,6 +17,7 @@ import javafx.scene.image.ImageView;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.EventHandler;
 import javafx.event.ActionEvent;
+import javafx.stage.WindowEvent;
 public class ReactionDiffusion extends Application {
 
   public static ImageView imgView = new ImageView();
@@ -33,6 +34,9 @@ public class ReactionDiffusion extends Application {
   private static float diffusionRateB = 0.5f;
 
   private static boolean playing = false;
+  private static boolean running = true;
+
+  private static Player player;
 
   public static class Laplace {
 
@@ -70,7 +74,7 @@ public class ReactionDiffusion extends Application {
     }
 
     public void run(){
-      while(true){
+      while(running){
         //System.out.println("Playing: " + playing);
         if(playing){
           imgView.setImage(step());
@@ -147,6 +151,13 @@ public class ReactionDiffusion extends Application {
     container.getChildren().addAll(viewport, controls);
     controls.getChildren().addAll(btnPlay, btnStop, btnStep);
 
+    stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+          public void handle(WindowEvent e) {
+              playing = false;
+              running = false;
+              //System.out.println("Closing...");
+          }
+    });
     stage.setTitle("Reaction Diffusion");
     stage.setScene(scene);
     stage.show();
@@ -333,7 +344,7 @@ public class ReactionDiffusion extends Application {
     //System.out.println("A: " + matrixA[64][117] + " B: " + matrixB[64][117]);
     //System.out.println(laplace.A + " " + laplace.B);
 
-    Player player = new Player("player1", imgView);
+    player = new Player("player1", imgView);
     player.start();
 
     Application.launch(args);
