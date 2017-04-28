@@ -1,9 +1,11 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileOutputStream;
 import javax.imageio.ImageIO;
-import java.io.IOException;
+import java.io.*;
 import java.util.Random;
 import java.nio.ByteBuffer;
+import java.lang.Float;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -18,6 +20,10 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.event.EventHandler;
 import javafx.event.ActionEvent;
 import javafx.stage.WindowEvent;
+import java.util.ArrayList;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class ReactionDiffusion extends Application {
 
   public static ImageView imgView = new ImageView();
@@ -26,7 +32,9 @@ public class ReactionDiffusion extends Application {
   private static float[][] laplace = {{0.05f, 0.2f, 0.05f}, {0.2f, -1.0f, 0.2f},
     {0.05f, 0.2f, 0.05f}};
 
+  // Image resolution
   private static int resX = 240, resY = 135;
+  //private static int resX = 910, resY = 540;
 
   private static float feedRate = 0.0367f;
   private static float killRate = 0.0649f;
@@ -37,6 +45,9 @@ public class ReactionDiffusion extends Application {
   private static boolean running = true;
 
   private static Player player;
+
+  private static FileOutputStream values;
+  private static Boolean debug = false;
 
   public static class Laplace {
 
@@ -217,13 +228,29 @@ public class ReactionDiffusion extends Application {
 
   }
 
+  public static void writeValues(float a, float b){
+
+    try{
+      values.write(Float.toString(a).getBytes());
+      values.write(' ');
+      values.write(Float.toString(b).getBytes());
+      values.write('\n');
+    } catch (IOException e){
+      System.out.println("Error writing value to file");
+    }
+
+  }
+
   public static void updateImage(BufferedImage image, float A, float B, int x, int y){
 
+    int colorChoice = 180;
     int a = 255;
-    //float col = 255 - (B * 255);
 
-    float col = 255 - (B * 255);
+    //float col = 255 - (B * 255);
+    float col = 255 * B;
+    //col += 40;
     //col = (col / 255) * 30;
+    //writeValues(A, B);
 
     int r = (int) col;
     //int r = (int) (((float) 255) * B);
@@ -235,10 +262,37 @@ public class ReactionDiffusion extends Application {
 
   }
 
-  public static void updateImageBW(BufferedImage image, float B, int x, int y){
+  public static void updateImageNew(BufferedImage image, float A, float B, int x, int y){
+
+    //int alpha = 255, r = 235, g = 52, b = 52;
+    int alpha = 255, r = 0, g = 0, b = 0;
+    float col = 0;
+
+    // if(B >= .05){
+    //   float colorChoice = 180f;
+    //   float modifier = 20f;
+    //   col = 180 + (B * modifier);
+    //   //col = 255 - (B * 255);
+    // }
+    if(A < .6){
+      //col = B * 255;
+      col = 160;
+      r = (int) col;
+      g = (int) col;
+      b = (int) col;
+    }
+
+
+
+    int color = (alpha << 24) | (r << 16) | (g << 8) | b;
+    image.setRGB(x, y, color);
+
+  }
+
+  public static void updateImageBW(BufferedImage image, float A, float B, int x, int y){
 
     int color = 0;
-    if(B >= 1.0)
+    if(A <= .3)
       color = 0xFF000000;
     else
       color = 0xFFFFFFFF;
@@ -254,7 +308,7 @@ public class ReactionDiffusion extends Application {
     for(int y = 0; y < resY; y++){
       for(int x = 0; x < resX; x++){
         Results results = calculate(y, x);
-        updateImage(img, results.A, results.B, x, y);
+        updateImageNew(img, results.A, results.B, x, y);
         //updateImageBW(img, results.B, x, y);
       }
     }
@@ -263,6 +317,7 @@ public class ReactionDiffusion extends Application {
     // float A = matrixA[0][0];
     // float B = matrixB[0][0];
     // System.out.println("\tA: " + (1 - B) + " B: " + B);
+    //System.out.println("Step complete");
     return SwingFXUtils.toFXImage(img, null);
 
   }
@@ -323,11 +378,35 @@ public class ReactionDiffusion extends Application {
 
     matrixA = new float[resY][resX];
     matrixB = new float[resY][resX];
+    int sideLengthHalf = 4;
+
     for(int i = 0; i < resY; i++){
       for(int j = 0; j < resX; j++){
         matrixA[i][j] = 1;
-        if((i > ((resY / 2) - 4) && i < ((resY / 2) + 4))
-          && (j > ((resX / 2) - 4) && j < ((resX / 2) + 4)))
+        if((i > ((resY / 2) - sideLengthHalf) && i < ((resY / 2) + sideLengthHalf))
+          && (j > ((resX / 2) - sideLengthHalf) && j < ((resX / 2) + sideLengthHalf)))
+          matrixB[i][j] = 1;
+        else
+          matrixB[i][j] = 0;
+
+      }
+    }
+
+  }
+
+  public static void initializeMatricesNew(){
+
+    matrixA = new float[resY][resX];
+    matrixB = new float[resY][resX];
+    int centerX = resX / 2;
+    int centerY = resY / 2;
+    int radius = 10;
+
+    for(int i = 0; i < resY; i++){
+      for(int j = 0; j < resX; j++){
+        matrixA[i][j] = 1;
+        if(((i - centerY)*(i - centerY) + (j - centerX)*(j - centerX)) <=
+          radius * radius)
           matrixB[i][j] = 1;
         else
           matrixB[i][j] = 0;
@@ -339,6 +418,19 @@ public class ReactionDiffusion extends Application {
 
   public static void main(String[] args){
 
+    LocalDateTime date = LocalDateTime.now();
+    String dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"));
+    String valFileName = "values";
+
+    if(debug){
+      try{
+        values = new FileOutputStream("output/values_" + dateString + ".txt");
+      }catch (FileNotFoundException e){
+        System.out.println("File not found");
+      }
+    }
+    //System.out.println(dateString);
+
     initializeMatrices();
     Laplace laplace = getLaplace(117, 64);
     //System.out.println("A: " + matrixA[64][117] + " B: " + matrixB[64][117]);
@@ -348,6 +440,14 @@ public class ReactionDiffusion extends Application {
     player.start();
 
     Application.launch(args);
+
+    if(debug){
+      try{
+        values.close();
+      } catch (IOException e){
+
+      }
+    }
 
   }
 
