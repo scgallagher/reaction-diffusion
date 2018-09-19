@@ -1,58 +1,99 @@
 import numpy as np
 from PIL import Image
 
-def initialize_matrix(resX=1000, resY=1000):
+def draw_square(matrix, side_length=None, center=None):
 
-    low_x_bound = resX / 2 - 10
-    high_x_bound = resX /2 + 10
-    low_y_bound = resY / 2 - 10
-    high_y_bound = resY / 2 + 10
-    matrix = np.zeros((resX, resY))
+    if not side_length:
+        side_length = int(len(matrix) / 5)
 
-    for (x, y), concentration in np.ndenumerate(matrix):
+    height = matrix.shape[0]
+    width = matrix.shape[1]
 
-        if x >= low_x_bound and x <= high_x_bound and y >= low_y_bound and y <= high_y_bound:
-            matrix[x, y] = 1
+    if not center:
+        center = (int(width / 2), int(height / 2))
+    center_x, center_y = center
+
+    low_x_bound = int(center_x - side_length / 2)
+    high_x_bound = int(center_x + side_length / 2)
+    low_y_bound = int(center_y - side_length / 2)
+    high_y_bound = int(center_y + side_length / 2)
+
+    for i in range(low_y_bound, high_y_bound):
+        for j in range(low_x_bound, high_x_bound):
+            matrix[i, j] = (0, 1)
 
     return matrix
 
-def get_laplace(x, y):
+def initialize_matrix(height=1000, width=1000):
 
-    sum = 0
+    matrix = np.full((height, width), fill_value=(1, 0), dtype=(float, 2))
+
+    return draw_square(matrix, side_length=4)
+
+def sum_laplace(x, y):
+
+    sum_a = 0
+    sum_b = 0
+
     for i in range(3):
         row = x + (i - 1)
+        if row < 0: row = height - 1
+        elif row >= height: row = 0
         for j in range(3):
             col = y + (j - 1)
-            sum += matrix[row, col] * conv_matrix[i, j]
+            if col < 0: col = width - 1
+            elif col >= width: col = 0
+            a, b = matrix[row, col]
+            sum_a += a * conv_matrix[i, j]
+            sum_b += b * conv_matrix[i, j]
 
-    return sum
+    return (sum_a, sum_b)
 
-def step():
+def step(matrix, rates):
 
-    for x in range(width):
-        for y in range(height):
+    diff_rate_a, diff_rate_b, feed_rate, kill_rate = rates
+    new_matrix = np.empty((height, width), dtype=(float, 2))
 
-            laplace = get_laplace(x, y)
+    for x in range(height):
+        for y in range(width):
+
+            laplace_a, laplace_b = sum_laplace(x, y)
+            a, b = matrix[x, y]
+            new_a = diff_rate_a * laplace_a - a * b * b + feed_rate * (1 - a)
+            new_b = diff_rate_b * laplace_b - a * b * b + (kill_rate + feed_rate) * b
+
+            new_matrix[x, y] = (new_a, new_b)
+
+    return new_matrix
+
+def display_matrix(matrix):
+
+    b_color = [0, 0, 0]
+    background_color = [255, 255, 255]
+
+    img_matrix = np.empty((height, width, 3))
+
+    for i in range(height):
+        for j in range(width):
+            if matrix[i, j, 1] > 0.6:
+                img_matrix[i, j] = b_color
+            else:
+                img_matrix[i, j] = background_color
+
+    img = Image.fromarray(np.uint8(img_matrix), 'RGB')
+    img.show()
 
 conv_matrix = np.array([[0.05, 0.2, 0.05], [0.2, -1, 0.2], [0.05, 0.2, 0.05]])
-width = 1000
-height = 1000
+width = 240
+height = 135
 
-matrix = initialize_matrix(width, height)
+steps = 21
+matrix = initialize_matrix(height, width)
 
-a_color = [0, 0, 0]
-b_color = [255, 255, 255]
+for i in range(steps):
 
-img_matrix = np.empty((width, height, 3))
+    if i % 10 == 0:
+        print(np.amax(matrix))
+        #display_matrix(matrix)
 
-for x in range(width):
-    for y in range(height):
-        if matrix[x, y] == 1:
-            img_matrix[x, y] = a_color
-        else:
-            img_matrix[x, y] = b_color
-
-#print(img_matrix)
-
-img = Image.fromarray(np.uint8(img_matrix), 'RGB')
-img.show()
+    matrix = step(matrix, (1.0, 0.5, 0.0367, 0.0649))
