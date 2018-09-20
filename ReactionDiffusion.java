@@ -6,6 +6,7 @@ import java.io.*;
 import java.util.Random;
 import java.nio.ByteBuffer;
 import java.lang.Float;
+import java.lang.Math;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -19,7 +20,10 @@ import javafx.scene.image.ImageView;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.EventHandler;
 import javafx.event.ActionEvent;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.stage.WindowEvent;
+import javafx.scene.control.Slider;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -33,11 +37,13 @@ public class ReactionDiffusion extends Application {
     {0.05f, 0.2f, 0.05f}};
 
   // Image resolution
+  //private static int resX = 960, resY = 540;
   private static int resX = 240, resY = 135;
-  //private static int resX = 910, resY = 540;
 
-  private static float feedRate = 0.0367f;
-  private static float killRate = 0.0649f;
+  // private static float feedRate = 0.0367f;
+  // private static float killRate = 0.0649f;
+  private static float feedRate = 0.0545f;
+  private static float killRate = 0.062f;
   private static float diffusionRateA = 1.0f;
   private static float diffusionRateB = 0.5f;
 
@@ -48,6 +54,8 @@ public class ReactionDiffusion extends Application {
 
   private static FileOutputStream values;
   private static Boolean debug = false;
+
+  public static float min = 0, max = 0;
 
   public static class Laplace {
 
@@ -113,21 +121,19 @@ public class ReactionDiffusion extends Application {
 
   public void start(Stage stage){
 
-    //StackPane pane = new StackPane();
     HBox container = new HBox();
     Pane viewport = new Pane();
     VBox controls = new VBox();
-    // Image img = new Image("star_wars.jpg");
-    // ImageView imgView = new ImageView(img);
 
     Button btnStep = new Button("Step");
     Button btnPlay = new Button("Play");
     Button btnStop = new Button("Stop");
+    Slider sldrFeedRate = new Slider(0, 0.1, feedRate);
+    Slider sldrKillRate = new Slider(0, 0.08, killRate);
 
     btnStep.setOnAction(new EventHandler<ActionEvent>(){
       @Override
       public void handle(ActionEvent e){
-        //step();
         imgView.setImage(step());
       }
     });
@@ -148,6 +154,20 @@ public class ReactionDiffusion extends Application {
       }
     });
 
+    sldrFeedRate.valueProperty().addListener(new ChangeListener<Number>() {
+      public void changed(ObservableValue<? extends Number> ov,
+        Number old_val, Number new_val) {
+          feedRate = (float) sldrFeedRate.getValue();
+      }
+    });
+
+    sldrKillRate.valueProperty().addListener(new ChangeListener<Number>() {
+      public void changed(ObservableValue<? extends Number> ov,
+        Number old_val, Number new_val) {
+          killRate = (float) sldrKillRate.getValue();
+      }
+    });
+
     imgView.fitWidthProperty().bind(viewport.widthProperty());
     imgView.fitHeightProperty().bind(viewport.heightProperty());
     Scene scene = new Scene(container, 1200, 540);
@@ -160,7 +180,8 @@ public class ReactionDiffusion extends Application {
 
     viewport.getChildren().add(imgView);
     container.getChildren().addAll(viewport, controls);
-    controls.getChildren().addAll(btnPlay, btnStop, btnStep);
+    controls.getChildren().addAll(btnPlay, btnStop, btnStep, sldrFeedRate,
+      sldrKillRate);
 
     stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
           public void handle(WindowEvent e) {
@@ -243,60 +264,36 @@ public class ReactionDiffusion extends Application {
 
   public static void updateImage(BufferedImage image, float A, float B, int x, int y){
 
-    int colorChoice = 180;
-    int a = 255;
-
-    //float col = 255 - (B * 255);
-    float col = 255 * B;
-    //col += 40;
-    //col = (col / 255) * 30;
-    //writeValues(A, B);
-
-    int r = (int) col;
-    //int r = (int) (((float) 255) * B);
-    int g = (int) col;
-    int b = (int) col;
-
-    int color = (a << 24) | (r << 16) | (g << 8) | b;
-    image.setRGB(x, y, color);
-
-  }
-
-  public static void updateImageNew(BufferedImage image, float A, float B, int x, int y){
-
-    //int alpha = 255, r = 235, g = 52, b = 52;
     int alpha = 255, r = 0, g = 0, b = 0;
     float col = 0;
 
-    // if(B >= .05){
-    //   float colorChoice = 180f;
-    //   float modifier = 20f;
-    //   col = 180 + (B * modifier);
-    //   //col = 255 - (B * 255);
-    // }
-    if(A < .6){
-      //col = B * 255;
-      col = 160;
-      r = (int) col;
-      g = (int) col;
-      b = (int) col;
-    }
+    // Normalize B to make it always between 0 and 1
+    B = (B - min) / max;
+    col = 255 - B * 255;
 
-
+    r = (int) col;
+    g = (int) col;
+    b = (int) col;
 
     int color = (alpha << 24) | (r << 16) | (g << 8) | b;
     image.setRGB(x, y, color);
 
   }
 
-  public static void updateImageBW(BufferedImage image, float A, float B, int x, int y){
+  public static void getMinMax() {
 
-    int color = 0;
-    if(A <= .3)
-      color = 0xFF000000;
-    else
-      color = 0xFFFFFFFF;
-    image.setRGB(x, y, color);
+    for (int i = 0; i < matrixB.length; i++) {
+      for (int j = 0; j < matrixB.length; j++) {
+
+        if (matrixB[i][j] < min) {
+          min = matrixB[i][j];
+        }
+        if (matrixB[i][j] > max) {
+          max = matrixB[i][j];
+        }
+
+      }
+    }
 
   }
 
@@ -304,11 +301,12 @@ public class ReactionDiffusion extends Application {
 
     //System.out.print("Processing step...");
     BufferedImage img = new BufferedImage(resX, resY, BufferedImage.TYPE_INT_ARGB);
+    getMinMax();
 
     for(int y = 0; y < resY; y++){
       for(int x = 0; x < resX; x++){
         Results results = calculate(y, x);
-        updateImageNew(img, results.A, results.B, x, y);
+        updateImage(img, results.A, results.B, x, y);
         //updateImageBW(img, results.B, x, y);
       }
     }
