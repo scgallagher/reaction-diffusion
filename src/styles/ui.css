@@ -1,0 +1,17 @@
+.hbox {
+  -fx-background-color: #2f4f4f;
+}
+
+.viewport {
+  -fx-border-color: black;
+  -fx-border-width: 2px;
+  -fx-pref-width: 960;
+  -fx-pref-height: 540;
+}
+
+.controls {
+  -fx-border-color: black;
+  -fx-border-width: 2px;
+  -fx-pref-width: 240;
+  -fx-alignment: center;
+}
