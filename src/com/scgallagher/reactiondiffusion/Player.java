@@ -1,5 +1,7 @@
 package com.scgallagher.reactiondiffusion;
 
+import javafx.beans.value.ObservableValue;
+import javafx.event.ActionEvent;
 import javafx.scene.image.ImageView;
 
 public class Player implements Runnable {
@@ -12,8 +14,11 @@ public class Player implements Runnable {
     private boolean playing;
     
     private DiffusionGenerator generator;
+    
+    private float feedRate;
+    private float killRate;
 
-    public Player(String name, ImageView imgView, DiffusionGenerator generator){
+    public Player(String name, ImageView imgView, DiffusionGenerator generator, float feedRate, float killRate){
       
     	this.name = name;
     	this.imgView = imgView;
@@ -21,6 +26,9 @@ public class Player implements Runnable {
     	
     	this.running = true;
     	this.playing = false;
+    	
+    	this.feedRate = feedRate;
+    	this.killRate = killRate;
     	
     }
 	

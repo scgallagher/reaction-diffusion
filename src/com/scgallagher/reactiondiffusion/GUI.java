@@ -43,81 +43,8 @@ public class GUI extends Application {
 	
 	@Override
 	public void start(Stage stage) throws Exception {
+		
 
-		HBox container = new HBox();
-	    Pane viewport = new Pane();
-	    VBox controls = new VBox();
-
-	    Button btnStep = new Button("Step");
-	    Button btnPlay = new Button("Play");
-	    Button btnStop = new Button("Stop");
-	    Slider sldrFeedRate = new Slider(0, 0.1, feedRate);
-	    Slider sldrKillRate = new Slider(0, 0.08, killRate);
-
-	    btnStep.setOnAction(new EventHandler<ActionEvent>(){
-	    	
-	    	@Override
-	    	public void handle(ActionEvent e){
-	    		imgView.setImage(generator.step());
-	    	}
-	    	
-	    });
-
-	    btnPlay.setOnAction(new EventHandler<ActionEvent>(){
-	      @Override
-	      public void handle(ActionEvent e){
-	        player.setPlaying(true);;
-	        System.out.println("Playing");
-	      }
-	    });
-
-	    btnStop.setOnAction(new EventHandler<ActionEvent>(){
-	      @Override
-	      public void handle(ActionEvent e){
-	        player.setPlaying(false);;
-	        System.out.println("Stopped");
-	      }
-	    });
-
-	    sldrFeedRate.valueProperty().addListener(new ChangeListener<Number>() {
-	      public void changed(ObservableValue<? extends Number> ov,
-	        Number old_val, Number new_val) {
-	          feedRate = (float) sldrFeedRate.getValue();
-	      }
-	    });
-
-	    sldrKillRate.valueProperty().addListener(new ChangeListener<Number>() {
-	      public void changed(ObservableValue<? extends Number> ov,
-	        Number old_val, Number new_val) {
-	          killRate = (float) sldrKillRate.getValue();
-	      }
-	    });
-
-	    imgView.fitWidthProperty().bind(viewport.widthProperty());
-	    imgView.fitHeightProperty().bind(viewport.heightProperty());
-	    Scene scene = new Scene(container, 1200, 540);
-
-	    scene.getStylesheets().add("styles/ui.css");
-
-	    container.getStyleClass().add("hbox");
-	    viewport.getStyleClass().add("viewport");
-	    controls.getStyleClass().add("controls");
-
-	    viewport.getChildren().add(imgView);
-	    container.getChildren().addAll(viewport, controls);
-	    controls.getChildren().addAll(btnPlay, btnStop, btnStep, sldrFeedRate,
-	      sldrKillRate);
-
-	    stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-	          public void handle(WindowEvent e) {
-	              player.setPlaying(false);;
-	              player.setPlaying(false);;
-	              //System.out.println("Closing...");
-	          }
-	    });
-	    stage.setTitle("Reaction Diffusion");
-	    stage.setScene(scene);
-	    stage.show();
 
 	}
 
