@@ -1,5 +1,6 @@
 package com.scgallagher.reactiondiffusion;
 import java.io.FileOutputStream;
+import java.net.URL;
 import java.io.*;
 
 import javafx.application.Application;
@@ -7,6 +8,7 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Slider;
@@ -22,6 +24,8 @@ import java.time.format.DateTimeFormatter;
 
 public class ReactionDiffusion extends Application {
 
+	static GUIController controller;
+	
 	private float feedRate;
 	private float killRate;
 	
@@ -142,60 +146,71 @@ public class ReactionDiffusion extends Application {
   		
   	}
   	
-  	public Stage getStage() {
+  	@Override
+  	public void start(Stage stage) throws Exception {
   		
-  		return this.stage;
+  		FXMLLoader loader = new FXMLLoader();
+		loader.setLocation(new URL("file:////C:/Users/bre54621/workspace/reaction-diffusion/src/test.fxml"));
+		HBox hbox = loader.<HBox>load();
+		
+		controller = loader.getController();
+
+		Scene scene = new Scene(hbox, 1200, 540);
+		scene.getStylesheets().add("styles/ui.css");
+		
+		controller.container.getStyleClass().add("hbox");
+	    controller.viewport.getStyleClass().add("viewport");
+	    controller.controls.getStyleClass().add("controls");
+		
+		stage.setScene(scene);
+		stage.setTitle("Reaction Diffusion");
+		stage.show();
   		
   	}
-  	
-  	@Override
-	public void start(Stage primaryStage) throws Exception {
-
-  		this.stage.show();
-		
-	}
 	
-	public static void main(String[] args){
+	public static void main(String[] args) {
 
-  		LocalDateTime date = LocalDateTime.now();
- 		String dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"));
-
- 		FileOutputStream values = null;
- 		Boolean debug = false;
-	  
- 		if(debug){
- 			try {
- 				values = new FileOutputStream("output/values_" + dateString + ".txt");
- 			} 
- 			catch (FileNotFoundException e) {
- 				System.out.println("File not found");
- 			}
- 		}
-
- 		int resX = 240, resY = 135;
- 		float feedRate = 0.0545f;
- 		float killRate = 0.062f;
- 		float diffusionRateA = 1.0f;
- 		float diffusionRateB = 0.5f;
- 		
-// 		DiffusionGenerator generator = new DiffusionGenerator(resX, resY, diffusionRateA, diffusionRateB,
-// 				feedRate, killRate);
+		Application.launch();
+		
+//  	LocalDateTime date = LocalDateTime.now();
+// 		String dateString = date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmmss"));
 //
-// 		Player player = new Player("player1", imgView, generator);
-//		player.start();
-
-		//@SuppressWarnings("unused")
-		//GUI gui = new GUI(imgView, player, feedRate, killRate, generator);
-		Application.launch(args);
-
-		if(debug){
-			try{
-				values.close();
-			} 
-			catch (IOException e) {
-
-			}
-		}
+// 		FileOutputStream values = null;
+// 		Boolean debug = false;
+//	  
+// 		if(debug){
+// 			try {
+// 				values = new FileOutputStream("output/values_" + dateString + ".txt");
+// 			} 
+// 			catch (FileNotFoundException e) {
+// 				System.out.println("File not found");
+// 			}
+// 		}
+//
+// 		int resX = 240, resY = 135;
+// 		float feedRate = 0.0545f;
+// 		float killRate = 0.062f;
+// 		float diffusionRateA = 1.0f;
+// 		float diffusionRateB = 0.5f;
+// 		
+//// 		DiffusionGenerator generator = new DiffusionGenerator(resX, resY, diffusionRateA, diffusionRateB,
+//// 				feedRate, killRate);
+////
+//// 		Player player = new Player("player1", imgView, generator);
+////		player.start();
+//
+//		//@SuppressWarnings("unused")
+//		//GUI gui = new GUI(imgView, player, feedRate, killRate, generator);
+//		Application.launch(args);
+//
+//		if(debug){
+//			try{
+//				values.close();
+//			} 
+//			catch (IOException e) {
+//
+//			}
+//		}
 
  	}
 

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Button?>
+
+<HBox fx:id="container" xmlns:fx="http://javafx.com/fxml" fx:controller="com.scgallagher.reactiondiffusion.GUIController">
+	<Pane fx:id="viewport">
+		<ImageView fx:id="imgView">
+		</ImageView>
+	</Pane>
+	<VBox fx:id="controls">
+		<Button fx:id="buttonStep" text="Step"/>
+		<Button fx:id="buttonPlay" text="Play"/>
+		<Button fx:id="buttonStop" text="Stop"/>
+	</VBox>
+</HBox>
