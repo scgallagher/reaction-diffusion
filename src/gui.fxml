@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Slider?>
+<?import java.lang.Double?>
+<?import javafx.stage.Stage?>
+<?import javafx.scene.Scene?>
+<?import javafx.scene.control.Label?>
+
+<Stage fx:id="stage" xmlns:fx="http://javafx.com/fxml" fx:controller="com.scgallagher.reactiondiffusion.GUIController"
+onCloseRequest="#stageClosed">
+	<scene>
+		<Scene fx:id="scene">
+			<HBox fx:id="container" >
+				<Pane fx:id="viewport">
+					<ImageView fx:id="imgView" fitWidth="${viewport.width}" fitHeight="${viewport.height}" />
+				</Pane>
+				<VBox fx:id="controls">
+					<Button fx:id="buttonStep" text="Step" onAction="#buttonStepAction" />
+					<Button fx:id="buttonPlay" text="Play" onAction="#buttonPlayAction" />
+					<Button fx:id="buttonStop" text="Stop" onAction="#buttonStopAction" />
+					<HBox>
+						<Label fx:id="labelFeedRate" text="Feed Rate" />
+						<Slider fx:id="sliderFeedRate" min="0" max="0.1" value="0.0545" />
+					</HBox>
+					<HBox>
+						<Label fx:id="labelKillRate" text="Kill Rate" />
+						<Slider fx:id="sliderKillRate" min="0" max="0.08" value="0.062" />
+					</HBox>
+				</VBox>
+			</HBox>
+		</Scene>
+	</scene>
+</Stage>
+

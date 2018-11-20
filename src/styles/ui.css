@@ -14,4 +14,13 @@
   -fx-border-width: 2px;
   -fx-pref-width: 240;
   -fx-alignment: center;
+  -fx-spacing: 10;
+}
+
+.labels {
+	-fx-alignment: baseline-left;
+}
+
+.sliders {
+	-fx-alignment: baseline-right;
 }

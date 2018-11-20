@@ -195,4 +195,16 @@ public class DiffusionGenerator {
 
 	  }
 	
+	public void setFeedRate(float feedRate) {
+		
+		this.feedRate = feedRate;
+		
+	}
+	
+	public void setKillRate(float killRate) {
+		
+		this.killRate = killRate;
+		
+	}
+	
 }
